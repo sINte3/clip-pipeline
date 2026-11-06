@@ -29,7 +29,11 @@ Write-Host "Python ${ver}: OK"
 # 2. ffmpeg
 if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
     Write-Host "ffmpeg не найден — ставлю через winget (Gyan.FFmpeg)..."
-    winget install --id Gyan.FFmpeg -e --accept-source-agreements --accept-package-agreements
+    winget install --id Gyan.FFmpeg -e --source winget --accept-source-agreements --accept-package-agreements
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "winget не смог поставить ffmpeg (код $LASTEXITCODE). Скачайте сборку вручную: https://www.gyan.dev/ffmpeg/builds/ (ffmpeg-release-essentials.zip), распакуйте в C:\ffmpeg и добавьте C:\ffmpeg\bin в PATH."
+        exit 1
+    }
     Write-Host "ffmpeg установлен. Откройте НОВОЕ окно PowerShell (чтобы обновился PATH) и запустите скрипт снова."
     exit 1
 }
