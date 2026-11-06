@@ -80,7 +80,7 @@ class Campaign:
     @staticmethod
     def load(path: str | Path) -> "Campaign":
         p = Path(path)
-        with open(p, "r", encoding="utf-8") as f:
+        with open(p, "r", encoding="utf-8-sig") as f:
             raw = json.load(f)
         banner_raw = raw.pop("banner", None)
         known = {k: v for k, v in raw.items() if k in Campaign.__dataclass_fields__}

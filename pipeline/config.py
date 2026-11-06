@@ -103,7 +103,7 @@ def load_settings(overrides: Optional[dict] = None) -> Settings:
     """Собирает настройки: умолчания → pipeline.json → переменные окружения → overrides."""
     values: dict = {}
     if CONFIG_FILE.exists():
-        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+        with open(CONFIG_FILE, "r", encoding="utf-8-sig") as f:
             values.update(json.load(f))
     env_map = {
         "CLIP_DATA_DIR": "data_dir",

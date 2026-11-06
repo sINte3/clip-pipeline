@@ -112,7 +112,7 @@ def export_candidates(cands: list[Candidate], path: Path, source_id: int, campai
 
 
 def load_selection(path: Path) -> tuple[int, str, list[Candidate]]:
-    raw = json.loads(path.read_text(encoding="utf-8"))
+    raw = json.loads(path.read_text(encoding="utf-8-sig"))
     chosen: list[Candidate] = []
     for row in raw["candidates"]:
         if not row.get("chosen"):
