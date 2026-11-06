@@ -53,11 +53,16 @@ Write-Host "Зависимости: OK"
 
 # 5. Модель Whisper: сначала faster-whisper (Hugging Face), при неудаче — sherpa-onnx с GitHub
 Write-Host "Скачиваю модель Whisper small (около 500 МБ, один раз)..."
-$fw = & $py -c "from faster_whisper import WhisperModel; WhisperModel('small', device='cpu', compute_type='int8'); print('ok')" 2>&1
-if ($LASTEXITCODE -eq 0 -and "$fw" -match "ok") {
+# Предупреждения Hugging Face идут в stderr; в Windows PowerShell 5.1 при Stop это прерывает скрипт
+$ErrorActionPreference = "Continue"
+$env:HF_HUB_DISABLE_PROGRESS_BARS = "1"
+& $py -c "import warnings; warnings.filterwarnings('ignore'); from faster_whisper import WhisperModel; WhisperModel('small', device='cpu', compute_type='int8'); print('MODEL_OK')" 2>$null | Tee-Object -Variable fw
+$ErrorActionPreference = "Stop"
+if ("$fw" -match "MODEL_OK") {
     Write-Host "faster-whisper: модель small загружена и закэширована"
 } else {
     Write-Host "Hugging Face недоступен ($fw). Ставлю запасной бэкенд sherpa-onnx и модель с GitHub..."
+    $ErrorActionPreference = "Continue"
     & $py -m pip install sherpa-onnx --quiet
     New-Item -ItemType Directory -Force -Path "models" | Out-Null
     $tarball = "models\sherpa-onnx-whisper-small.tar.bz2"
@@ -75,6 +80,7 @@ if ($LASTEXITCODE -eq 0 -and "$fw" -match "ok") {
 }
 
 # 6. Проверка
+$ErrorActionPreference = "Continue"
 & $py -m pipeline doctor
 Write-Host ""
 Write-Host "Готово. Дальше: .\tools\watch_jobs.ps1 — запустить исполнителя заданий (оставить окно открытым),"
