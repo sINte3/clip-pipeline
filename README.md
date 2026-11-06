@@ -9,9 +9,19 @@
 
 ## Установка на Windows
 
-1. Python 3.11 или новее: https://www.python.org/downloads/ (при установке отметить «Add python.exe to PATH»).
-2. ffmpeg: в PowerShell `winget install Gyan.FFmpeg`, затем перезапустить терминал и проверить `ffmpeg -version`.
-3. Распаковать архив, например в `D:\clip-pipeline`, открыть PowerShell в этой папке и выполнить:
+Один раз, в PowerShell из папки проекта (например `D:\Claude\clip-pipeline`):
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\tools\setup_windows.ps1
+```
+
+Скрипт проверит Python (нужен 3.10+, иначе `winget install Python.Python.3.12`) и ffmpeg (поставит через
+winget, если нет), создаст `.venv`, установит зависимости, создаст `pipeline.json`, скачает модель Whisper
+и запустит `doctor`. Если Hugging Face недоступен, скрипт сам поставит запасной бэкенд sherpa-onnx с моделью
+с GitHub и переключит на него настройки.
+
+Ручной вариант того же:
 
 ```powershell
 python -m venv .venv
@@ -20,6 +30,17 @@ pip install -r requirements.txt
 python -m pipeline init
 python -m pipeline doctor
 ```
+
+### Исполнитель заданий (чтобы конвейер запускал Claude)
+
+```powershell
+.\tools\watch_jobs.ps1
+```
+
+Окно остаётся открытым. Исполнитель каждые 20 секунд читает файлы `jobs\*.job` (по одной команде
+`python -m pipeline ...` на строку), выполняет их на этом ПК и пишет лог в `jobs\done\<имя>.log`.
+Любые другие команды отклоняются. Claude кладёт задания в папку через связанную сессию, читает логи
+и забирает готовые клипы из `out\`.
 
 `doctor` должен показать OK у ffmpeg, ffprobe, шрифта, faster-whisper, opencv и yt-dlp.
 Жирный шрифт берётся из `C:\Windows\Fonts\arialbd.ttf` автоматически.

@@ -9,3 +9,5 @@ banners/*
 campaigns/*
 !campaigns/example_en.json
 !campaigns/example_ru.json
+jobs/
+models/
