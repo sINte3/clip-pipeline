@@ -1,0 +1,46 @@
+{
+  "id": "example_ru",
+  "name": "Пример задания DareBay (приложение)",
+  "lang": "ru",
+  "exchange": "darebay",
+  "url": "https://darebay.com/...",
+  "rate_per_1k": 2.0,
+  "threshold_views": 1000,
+  "cap_per_clip_usd": 500,
+  "budget_usd": 1000,
+  "deadline": "2026-12-01",
+  "platforms": [
+    "tiktok",
+    "instagram",
+    "youtube"
+  ],
+  "sources": [
+    "data/sources/example.mp4"
+  ],
+  "hashtags": [
+    "#приложение",
+    "#ии"
+  ],
+  "mentions": [],
+  "disclosure": "#реклама",
+  "caption_tail": "Ссылка в профиле",
+  "rules": [
+    "Только вертикальный формат",
+    "Ролик остаётся открытым до конца задания",
+    "Уникальная подпись на каждую публикацию",
+    "Без накрутки просмотров"
+  ],
+  "banner": null,
+  "clip_min_s": 15,
+  "clip_max_s": 45,
+  "clips_per_source": 10,
+  "frame_mode": "crop",
+  "subtitles": true,
+  "hook_overlay": true,
+  "subscribe_card": true,
+  "niche_hashtags": [
+    "#технологии",
+    "#нейросети",
+    "#бизнес"
+  ]
+}

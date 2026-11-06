@@ -1,0 +1,10 @@
+faster-whisper>=1.1
+yt-dlp>=2025.1.1
+opencv-python-headless>=4.9
+numpy>=1.26
+soundfile>=0.12
+pillow>=10.0
+# необязательно: оценка фрагментов языковой моделью (нужен ANTHROPIC_API_KEY)
+anthropic>=0.40
+# необязательно: бэкенд распознавания без Hugging Face (модель из релизов k2-fsa/sherpa-onnx)
+# sherpa-onnx>=1.10

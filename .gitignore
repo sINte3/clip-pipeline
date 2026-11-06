@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+data/
+out/
+pipeline.json
+banners/*
+!banners/example_banner.png
+campaigns/*
+!campaigns/example_en.json
+!campaigns/example_ru.json

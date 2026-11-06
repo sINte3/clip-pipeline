@@ -1,0 +1,56 @@
+{
+  "id": "example_en",
+  "name": "Example Podcast Clipping (Whop)",
+  "lang": "en",
+  "exchange": "whop",
+  "url": "https://whop.com/...",
+  "rate_per_1k": 1.5,
+  "threshold_views": 1000,
+  "cap_per_clip_usd": 200,
+  "budget_usd": 5000,
+  "deadline": "2026-12-15",
+  "platforms": [
+    "tiktok",
+    "instagram",
+    "youtube"
+  ],
+  "sources": [
+    "https://www.youtube.com/watch?v=EXAMPLE"
+  ],
+  "hashtags": [
+    "#podcast",
+    "#business"
+  ],
+  "mentions": [
+    "@examplepodcast"
+  ],
+  "disclosure": "#ad",
+  "caption_tail": "",
+  "rules": [
+    "Vertical 9:16 only, 15–60 s",
+    "Unique caption on every post",
+    "No reposts of the same clip on the same platform",
+    "Keep posts public until the campaign is paid",
+    "Use #ad in the caption"
+  ],
+  "banner": {
+    "path": "banners/example_banner.png",
+    "position": "top-right",
+    "width_frac": 0.28,
+    "margin": 40,
+    "start": 1.0,
+    "end": 0
+  },
+  "clip_min_s": 20,
+  "clip_max_s": 60,
+  "clips_per_source": 10,
+  "frame_mode": "crop",
+  "subtitles": true,
+  "hook_overlay": true,
+  "subscribe_card": true,
+  "niche_hashtags": [
+    "#entrepreneur",
+    "#money",
+    "#tech"
+  ]
+}
