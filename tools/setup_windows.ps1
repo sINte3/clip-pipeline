@@ -1,4 +1,4 @@
-# Установка clip-pipeline на Windows. Запуск один раз из PowerShell:
+﻿# Установка clip-pipeline на Windows. Запуск один раз из PowerShell:
 #   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 #   .\tools\setup_windows.ps1
 # Делает: проверяет Python и ffmpeg, создаёт .venv, ставит зависимости, создаёт pipeline.json,
@@ -21,10 +21,10 @@ if (-not $pyCmd) {
 }
 $ver = & python -c "import sys; print('%d.%d' % sys.version_info[:2])"
 if ([version]$ver -lt [version]"3.10") {
-    Write-Host "Нужен Python 3.10 или новее, найден $ver"
+    Write-Host "Нужен Python 3.10 или новее, найден ${ver}"
     exit 1
 }
-Write-Host "Python $ver: OK"
+Write-Host "Python ${ver}: OK"
 
 # 2. ffmpeg
 if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
