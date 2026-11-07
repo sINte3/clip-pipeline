@@ -156,7 +156,7 @@ def render_clip(settings: Settings, campaign: Campaign, source_path: Path, src_w
         idx += 1
 
     if campaign.hook_overlay and hook_text and font_file:
-        (workdir / "hook.txt").write_text(_wrap_hook(hook_text), encoding="utf-8")
+        (workdir / "hook.txt").write_text(_wrap_hook(hook_text), encoding="utf-8", newline="\n")
         chain.append(
             f"[{last}]drawtext=fontfile='{font_file}':textfile=hook.txt:fontsize={settings.hook_font_size}:"
             f"fontcolor=white:line_spacing=6:box=1:boxcolor=black@0.6:boxborderw=20:"
@@ -181,7 +181,7 @@ def render_clip(settings: Settings, campaign: Campaign, source_path: Path, src_w
 
     if campaign.subscribe_card and font_file:
         text = campaign.subscribe_text or (settings.subscribe_text_ru if campaign.lang == "ru" else settings.subscribe_text_en)
-        (workdir / "subscribe.txt").write_text(text, encoding="utf-8")
+        (workdir / "subscribe.txt").write_text(text, encoding="utf-8", newline="\n")
         start_at = max(0.0, duration - settings.subscribe_last_seconds)
         chain.append(
             f"[{last}]drawtext=fontfile='{font_file}':textfile=subscribe.txt:fontsize=56:fontcolor=black:"
