@@ -36,7 +36,7 @@ from .score_llm import (best_hook, default_niche, ensure_hooks, export_candidate
                         load_selection, score_with_llm, summary_line)
 from .segment import Candidate, build_candidates, select_non_overlapping
 from .tracker import Tracker
-from .transcribe import Transcript, extract_audio, transcribe
+from .transcribe import Transcript, apply_word_fixes, extract_audio, transcribe
 
 
 # ----------------------------------------------------------------------------- helpers
@@ -99,10 +99,16 @@ def ensure_audio_and_transcript(settings: Settings, source_path: Path, lang: Opt
 def compute_candidates(settings: Settings, campaign: Campaign, source_row, use_llm: bool) -> list[Candidate]:
     source_path = Path(source_row["path"])
     wav, _, tr = ensure_audio_and_transcript(settings, source_path, campaign.lang)
+    tr = apply_word_fixes(tr, campaign.word_fixes)
     energy = energy_profile(wav)
     cands = build_candidates(tr, campaign.lang, energy, campaign.clip_min_s, campaign.clip_max_s)
+    if campaign.exclude_keywords:
+        banned = [k.lower() for k in campaign.exclude_keywords]
+        before = len(cands)
+        cands = [c for c in cands if not any(b in c.text.lower() for b in banned)]
+        print(f"[filter] исключено по запрещённым темам: {before - len(cands)} из {before} окон")
     if not cands:
-        raise SystemExit("кандидатов нет: расшифровка пуста или клипы длиннее исходника — уменьшите clip_min_s")
+        raise SystemExit("кандидатов нет: расшифровка пуста, клипы длиннее исходника или всё отсеяно exclude_keywords")
     # Сначала грубый отбор лучших по эвристике (в 3 раза больше нужного), потом модель переранжирует
     shortlist = select_non_overlapping(cands, n=max(campaign.clips_per_source * 3, 15), max_overlap_frac=0.5)
     if use_llm and settings.llm_enabled and llm_available():
@@ -119,6 +125,7 @@ def _out_dir_for(settings: Settings, campaign: Campaign) -> Path:
 def render_candidates(settings: Settings, campaign: Campaign, tracker: Tracker, source_row, chosen: list[Candidate]) -> list[tuple[int, Path]]:
     source_path = Path(source_row["path"])
     _, _, tr = ensure_audio_and_transcript(settings, source_path, campaign.lang)
+    tr = apply_word_fixes(tr, campaign.word_fixes)
     banner = campaign.resolve_banner_path(PROJECT_ROOT)
     out_dir = _out_dir_for(settings, campaign)
     results: list[tuple[int, Path]] = []

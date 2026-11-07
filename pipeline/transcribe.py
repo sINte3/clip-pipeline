@@ -61,6 +61,44 @@ class Transcript:
         )
 
 
+def _split_punct(token: str) -> tuple[str, str, str]:
+    """'"Boxable,"' → ('"', 'Boxable', ',"'): ведущая пунктуация, слово, хвостовая пунктуация."""
+    import re
+    m = re.match(r"^([^\w]*)(.*?)([^\w]*)$", token, flags=re.UNICODE)
+    if not m:
+        return "", token, ""
+    return m.group(1), m.group(2), m.group(3)
+
+
+def apply_word_fixes(tr: "Transcript", fixes: dict[str, str]) -> "Transcript":
+    """Возвращает копию расшифровки с исправленными словами. Ключи из 1–2 слов, без учёта регистра.
+    Двухсловный ключ («Box Able») склеивает два слова в одно с временем от начала первого до конца второго."""
+    if not fixes:
+        return tr
+    single = {k.lower(): v for k, v in fixes.items() if len(k.split()) == 1}
+    double = {tuple(k.lower().split()): v for k, v in fixes.items() if len(k.split()) == 2}
+    out: list[Word] = []
+    i = 0
+    words = tr.words
+    while i < len(words):
+        w = words[i]
+        lead, core, tail = _split_punct(w.text)
+        if double and i + 1 < len(words):
+            lead2, core2, tail2 = _split_punct(words[i + 1].text)
+            key = (core.lower(), core2.lower())
+            if key in double and not tail:
+                out.append(Word(start=w.start, end=words[i + 1].end, text=f"{lead}{double[key]}{tail2}", prob=min(w.prob, words[i + 1].prob)))
+                i += 2
+                continue
+        if core.lower() in single:
+            out.append(Word(start=w.start, end=w.end, text=f"{lead}{single[core.lower()]}{tail}", prob=w.prob))
+        else:
+            out.append(w)
+        i += 1
+    return Transcript(language=tr.language, duration_s=tr.duration_s, words=out,
+                      approx_timestamps=tr.approx_timestamps, backend=tr.backend)
+
+
 def extract_audio(ffmpeg: str, video: Path, wav: Path, sample_rate: int = 16000) -> Path:
     wav.parent.mkdir(parents=True, exist_ok=True)
     cmd = [ffmpeg, "-v", "error", "-y", "-i", str(video), "-vn", "-ac", "1", "-ar", str(sample_rate),

@@ -61,6 +61,11 @@ class Campaign:
     subscribe_card: bool = True
     subscribe_text: str = ""                    # пусто = по языку из настроек
     niche_hashtags: list[str] = field(default_factory=list)  # хештеги темы аккаунта
+    # Исправления распознавания: {"Boxable": "BOXABL", "Box Able": "BOXABL"} — ключ из 1–2 слов,
+    # регистр не важен; применяются к субтитрам, хукам и тексту кандидатов
+    word_fixes: dict[str, str] = field(default_factory=dict)
+    # Фрагменты, где встречается любое из этих слов/фраз, не берутся в клипы (запрещённые темы бренда)
+    exclude_keywords: list[str] = field(default_factory=list)
 
     def validate(self) -> None:
         if not self.id or not self.name:
