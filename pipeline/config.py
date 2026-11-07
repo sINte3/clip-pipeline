@@ -84,9 +84,9 @@ class Settings:
     # Оформление по умолчанию (переопределяется кампанией)
     subtitle_font_size: int = 64
     subtitle_margin_v: int = 560           # отступ снизу в пикселях при высоте 1920
-    hook_font_size: int = 70
+    hook_font_size: int = 62
     hook_seconds: float = 4.0
-    hook_y: int = 300
+    hook_y: int = 240
     subscribe_text_ru: str = "Подпишись"
     subscribe_text_en: str = "Follow for more"
     subscribe_last_seconds: float = 2.0

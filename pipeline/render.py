@@ -110,7 +110,7 @@ def _frame_chain(mode: str, src_w: int, src_h: int, out_w: int, out_h: int, cx: 
     return f"scale={out_w}:-2,crop={out_w}:'min(ih,{out_h})',pad={out_w}:{out_h}:0:(oh-ih)/2:color=black"
 
 
-def _wrap_hook(text: str, width: int = 18) -> str:
+def _wrap_hook(text: str, width: int = 22) -> str:
     return "\n".join(textwrap.wrap(text, width=width, break_long_words=False)) or text
 
 
@@ -159,13 +159,15 @@ def render_clip(settings: Settings, campaign: Campaign, source_path: Path, src_w
         (workdir / "hook.txt").write_text(_wrap_hook(hook_text), encoding="utf-8")
         chain.append(
             f"[{last}]drawtext=fontfile='{font_file}':textfile=hook.txt:fontsize={settings.hook_font_size}:"
-            f"fontcolor=white:line_spacing=8:box=1:boxcolor=black@0.55:boxborderw=26:"
+            f"fontcolor=white:line_spacing=6:box=1:boxcolor=black@0.6:boxborderw=20:"
             f"x=(w-text_w)/2:y={settings.hook_y}:enable='between(t,0,{settings.hook_seconds:.2f})'[s{idx}]"
         )
         last = f"s{idx}"
         idx += 1
 
-    inputs = ["-ss", f"{cand.start:.3f}", "-i", str(source_path), "-t", f"{duration:.3f}"]
+    # -ss и -t обязательно ДО -i: так они относятся к исходнику. Если поставить -t после -i,
+    # при наличии баннера ffmpeg применит его ко второму входу, и клип растянется до конца исходника.
+    inputs = ["-ss", f"{cand.start:.3f}", "-t", f"{duration:.3f}", "-i", str(source_path)]
     if banner_path and campaign.banner:
         inputs += ["-i", str(banner_path)]
         b = campaign.banner
@@ -194,7 +196,8 @@ def render_clip(settings: Settings, campaign: Campaign, source_path: Path, src_w
 
     cmd = [settings.ffmpeg, "-v", "error", "-y", *inputs,
            "-filter_complex", filter_complex, "-map", "[vout]", "-map", "0:a:0?",
-           "-c:v", "libx264", "-preset", settings.preset, "-crf", str(settings.crf), "-r", str(settings.fps),
+           "-c:v", "libx264", "-preset", settings.preset, "-crf", str(settings.crf), "-maxrate", "8M", "-bufsize", "16M",
+           "-r", str(settings.fps), "-t", f"{duration:.3f}",
            "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11",
            "-movflags", "+faststart", "-shortest", str(out_path)]
     proc = subprocess.run(cmd, cwd=str(workdir), capture_output=True, text=True)
