@@ -86,6 +86,7 @@ class ComposeSpec:
     hook: str = ""
     hook_seconds: float = 3.0
     hook_box_opacity: float = 0.85             # плотная подложка, чтобы текст исходника под хуком не просвечивал
+    hook_band: bool = True                     # подложка во всю ширину кадра (закрывает чужие надписи вверху)
     subtitles: bool = True
     badges: list[dict] = field(default_factory=list)
 
@@ -256,6 +257,15 @@ def compose_clip(settings: Settings, campaign: Campaign, spec: ComposeSpec, segm
     if spec.hook and font_file:
         hook_txt = "\n".join(textwrap.wrap(spec.hook, width=22, break_long_words=False)) or spec.hook
         (workdir / "hook.txt").write_text(hook_txt, encoding="utf-8", newline="\n")
+        if spec.hook_band:
+            n_lines = hook_txt.count("\n") + 1
+            band_y = max(0, settings.hook_y - 40)
+            band_h = n_lines * int(settings.hook_font_size * 1.25) + 80
+            chain.append(
+                f"[{last}]drawbox=x=0:y={band_y}:w=iw:h={band_h}:color=black@{spec.hook_box_opacity:.2f}:t=fill:"
+                f"enable='between(t,0,{spec.hook_seconds:.2f})'[hb]"
+            )
+            last = "hb"
         chain.append(
             f"[{last}]drawtext=fontfile='{font_file}':textfile=hook.txt:fontsize={settings.hook_font_size}:"
             f"fontcolor=white:line_spacing=6:box=1:boxcolor=black@{spec.hook_box_opacity:.2f}:boxborderw=20:"
