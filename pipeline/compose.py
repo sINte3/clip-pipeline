@@ -16,7 +16,8 @@
   "hook": "Your AI agent can enter contests for you",
   "hook_seconds": 3.0,
   "subtitles": true,
-  "badges": [{"text": "#ad", "position": "top-right"}],
+  "badges": [{"text": "#ad", "position": "top-right"},
+             {"text": "Free to enter · make.fun", "position": "bottom-center", "start": -3}],   // start<0 — за N с до конца
   "segments": [
     {"source_id": 30, "start": 0.0, "end": 5.5},
     {"source": "data/sources/fc83f028bdbd.mp4", "start": 0.0, "end": 6.0}
@@ -63,6 +64,13 @@ class Badge:
     text: str
     position: str = "top-right"
     font_size: int = 44
+    start: float = 0.0      # с какой секунды показывать; отрицательное — за столько секунд до конца
+    end: float = 0.0        # до какой секунды; 0 — до конца клипа
+
+    def window(self, total: float) -> tuple[float, float]:
+        s = total + self.start if self.start < 0 else self.start
+        e = self.end if self.end > 0 else total
+        return max(0.0, s), max(0.0, e)
 
 
 @dataclass
@@ -146,7 +154,10 @@ def _render_segment(settings: Settings, seg: Segment, out: Path, frame_mode: str
     vchain = f"[0:v]{_frame_chain(frame_mode, seg.width, seg.height, w, h, None)},setsar=1,fps={fps},format=yuv420p[v]"
     cmd = [settings.ffmpeg, "-v", "error", "-y", "-ss", f"{seg.start:.3f}", "-t", f"{seg.duration:.3f}", "-i", str(seg.path)]
     if seg.has_audio:
-        achain = "[0:a]aresample=48000,aformat=channel_layouts=stereo[a]"
+        # короткие фейды на стыках, чтобы склейка фраз из разных роликов не щёлкала
+        fade_out_at = max(0.0, seg.duration - 0.06)
+        achain = (f"[0:a]aresample=48000,aformat=channel_layouts=stereo,"
+                  f"afade=t=in:d=0.03,afade=t=out:st={fade_out_at:.3f}:d=0.06[a]")
     else:
         cmd += ["-f", "lavfi", "-t", f"{seg.duration:.3f}", "-i", "anullsrc=r=48000:cl=stereo"]
         achain = "[1:a]anull[a]"
@@ -256,9 +267,11 @@ def compose_clip(settings: Settings, campaign: Campaign, spec: ComposeSpec, segm
             break
         (workdir / f"badge_{bi}.txt").write_text(b.text, encoding="utf-8", newline="\n")
         x, y = _badge_xy(b.position)
+        bs, be = b.window(total)
         chain.append(
             f"[{last}]drawtext=fontfile='{font_file}':textfile=badge_{bi}.txt:fontsize={b.font_size}:"
-            f"fontcolor=white:box=1:boxcolor=black@0.55:boxborderw=12:x={x}:y={y}[s{idx}]"
+            f"fontcolor=white:box=1:boxcolor=black@0.55:boxborderw=12:x={x}:y={y}:"
+            f"enable='between(t,{bs:.2f},{be:.2f})'[s{idx}]"
         )
         last = f"s{idx}"
         idx += 1
