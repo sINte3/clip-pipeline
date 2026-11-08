@@ -66,6 +66,7 @@ class Badge:
     font_size: int = 44
     start: float = 0.0      # с какой секунды показывать; отрицательное — за столько секунд до конца
     end: float = 0.0        # до какой секунды; 0 — до конца клипа
+    y: int = 0              # своя вертикальная позиция в пикселях (0 — по position)
 
     def window(self, total: float) -> tuple[float, float]:
         s = total + self.start if self.start < 0 else self.start
@@ -84,6 +85,7 @@ class ComposeSpec:
     tail_s: float = 0.6
     hook: str = ""
     hook_seconds: float = 3.0
+    hook_box_opacity: float = 0.85             # плотная подложка, чтобы текст исходника под хуком не просвечивал
     subtitles: bool = True
     badges: list[dict] = field(default_factory=list)
 
@@ -256,7 +258,7 @@ def compose_clip(settings: Settings, campaign: Campaign, spec: ComposeSpec, segm
         (workdir / "hook.txt").write_text(hook_txt, encoding="utf-8", newline="\n")
         chain.append(
             f"[{last}]drawtext=fontfile='{font_file}':textfile=hook.txt:fontsize={settings.hook_font_size}:"
-            f"fontcolor=white:line_spacing=6:box=1:boxcolor=black@0.6:boxborderw=20:"
+            f"fontcolor=white:line_spacing=6:box=1:boxcolor=black@{spec.hook_box_opacity:.2f}:boxborderw=20:"
             f"x=(w-text_w)/2:y={settings.hook_y}:enable='between(t,0,{spec.hook_seconds:.2f})'[s{idx}]"
         )
         last = f"s{idx}"
@@ -267,6 +269,8 @@ def compose_clip(settings: Settings, campaign: Campaign, spec: ComposeSpec, segm
             break
         (workdir / f"badge_{bi}.txt").write_text(b.text, encoding="utf-8", newline="\n")
         x, y = _badge_xy(b.position)
+        if b.y > 0:
+            y = str(b.y)
         bs, be = b.window(total)
         chain.append(
             f"[{last}]drawtext=fontfile='{font_file}':textfile=badge_{bi}.txt:fontsize={b.font_size}:"
