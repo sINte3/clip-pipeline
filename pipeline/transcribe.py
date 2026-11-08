@@ -71,27 +71,43 @@ def _split_punct(token: str) -> tuple[str, str, str]:
 
 
 def apply_word_fixes(tr: "Transcript", fixes: dict[str, str]) -> "Transcript":
-    """Возвращает копию расшифровки с исправленными словами. Ключи из 1–2 слов, без учёта регистра.
-    Двухсловный ключ («Box Able») склеивает два слова в одно с временем от начала первого до конца второго."""
+    """Возвращает копию расшифровки с исправленными словами. Ключи из 1–3 слов, без учёта регистра;
+    пунктуация внутри ключа и слов не учитывается («make .fun», «make dot fun» → ключи «make fun»,
+    «make dot fun»). Многословный ключ склеивает слова в одно с временем от начала первого до конца последнего."""
     if not fixes:
         return tr
-    single = {k.lower(): v for k, v in fixes.items() if len(k.split()) == 1}
-    double = {tuple(k.lower().split()): v for k, v in fixes.items() if len(k.split()) == 2}
+    by_len: dict[int, dict[tuple[str, ...], str]] = {1: {}, 2: {}, 3: {}}
+    for k, v in fixes.items():
+        parts = tuple(_split_punct(p)[1].lower() for p in k.split())
+        parts = tuple(p for p in parts if p)
+        if 1 <= len(parts) <= 3:
+            by_len[len(parts)][parts] = v
     out: list[Word] = []
     i = 0
     words = tr.words
     while i < len(words):
+        matched = False
+        for n in (3, 2):
+            table = by_len[n]
+            if not table or i + n > len(words):
+                continue
+            chunk = words[i:i + n]
+            split = [_split_punct(w.text) for w in chunk]
+            key = tuple(s[1].lower() for s in split)
+            # внутри фразы не должно быть хвостовой пунктуации (иначе это границы разных фраз)
+            if key in table and all(not s[2] for s in split[:-1]):
+                lead, tail = split[0][0], split[-1][2]
+                out.append(Word(start=chunk[0].start, end=chunk[-1].end, text=f"{lead}{table[key]}{tail}",
+                                prob=min(w.prob for w in chunk)))
+                i += n
+                matched = True
+                break
+        if matched:
+            continue
         w = words[i]
         lead, core, tail = _split_punct(w.text)
-        if double and i + 1 < len(words):
-            lead2, core2, tail2 = _split_punct(words[i + 1].text)
-            key = (core.lower(), core2.lower())
-            if key in double and not tail:
-                out.append(Word(start=w.start, end=words[i + 1].end, text=f"{lead}{double[key]}{tail2}", prob=min(w.prob, words[i + 1].prob)))
-                i += 2
-                continue
-        if core.lower() in single:
-            out.append(Word(start=w.start, end=w.end, text=f"{lead}{single[core.lower()]}{tail}", prob=w.prob))
+        if (core.lower(),) in by_len[1]:
+            out.append(Word(start=w.start, end=w.end, text=f"{lead}{by_len[1][(core.lower(),)]}{tail}", prob=w.prob))
         else:
             out.append(w)
         i += 1

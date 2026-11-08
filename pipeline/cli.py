@@ -7,6 +7,7 @@
     python -m pipeline candidates --source-id N [--n 10] [--no-llm]
     python -m pipeline render --selection FILE.json | --source-id N [--n 5] [--ids 3,7,12]
     python -m pipeline clip --campaign ID --source URL|FILE [--n 5]   — ingest + candidates + render
+    python -m pipeline compose --spec data/compose/NAME.json            — монтаж из фрагментов под голос
     python -m pipeline post --clip-id N --account ru_tiktok --platform tiktok --url URL
     python -m pipeline stats --post-id N --views V [--likes L --comments C] | --import FILE.csv
     python -m pipeline payout --campaign ID --amount 42.5 [--method usdt-ton]
@@ -235,6 +236,48 @@ def cmd_candidates(args, settings: Settings) -> int:
     return 0
 
 
+def cmd_compose(args, settings: Settings) -> int:
+    from .compose import ComposeSpec, compose_clip, resolve_segments
+
+    spec_path = Path(args.spec)
+    if not spec_path.is_absolute() and not spec_path.exists():
+        spec_path = PROJECT_ROOT / spec_path
+    spec = ComposeSpec.load(spec_path)
+    campaign = find_campaign(settings, spec.campaign_id)
+    tracker = Tracker(settings.db_path)
+
+    def lookup(source_id: int) -> str:
+        row = tracker.get_source(source_id)
+        if not row:
+            raise SystemExit(f"источник {source_id} не найден — сначала ingest")
+        return row["path"]
+
+    segments = resolve_segments(settings, spec, lookup)
+    first_source = next((int(s["source_id"]) for s in spec.segments if "source_id" in s), 0)
+    out_dir = _out_dir_for(settings, campaign)
+    out_path = out_dir / f"{campaign.id}_{spec.name}.mp4"
+    workdir = Path(settings.data_dir) / "work" / f"compose_{spec.name}"
+    print(f"[compose] {spec.name}: {len(segments)} фрагм., голос: {spec.voiceover or 'нет'}")
+    res = compose_clip(settings, campaign, spec, segments, workdir, out_path)
+    clip_id = tracker.add_clip(first_source, campaign.id, 0.0, res.duration_s, spec.hook, 0.0, None, str(res.path))
+    sidecar = {
+        "clip_id": clip_id,
+        "campaign_id": campaign.id,
+        "name": spec.name,
+        "duration": round(res.duration_s, 2),
+        "hook": spec.hook,
+        "voiceover": spec.voiceover,
+        "transcript": res.transcript_text,
+        "segments": spec.segments,
+        "rules": campaign.rules,
+    }
+    out_path.with_suffix(".json").write_text(json.dumps(sidecar, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"[compose] готово → {res.path.name} ({res.duration_s:.1f} с), clip_id = {clip_id}")
+    if res.transcript_text:
+        print(f"[compose] текст: {res.transcript_text}")
+    return 0
+
+
 def cmd_render(args, settings: Settings) -> int:
     tracker = Tracker(settings.db_path)
     if args.selection:
@@ -359,6 +402,10 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--ids", help="id кандидатов через запятую")
     s.add_argument("--no-llm", action="store_true")
     s.set_defaults(fn=cmd_render)
+
+    s = sub.add_parser("compose", help="смонтировать клип из нескольких фрагментов под закадровый голос")
+    s.add_argument("--spec", required=True, help="JSON-спецификация монтажа (см. pipeline/compose.py)")
+    s.set_defaults(fn=cmd_compose)
 
     s = sub.add_parser("clip", help="ingest + candidates + render одной командой")
     s.add_argument("--campaign", required=True)
